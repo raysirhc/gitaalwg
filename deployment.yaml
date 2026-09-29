@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: workshop01
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mymcpapp
+  namespace: workshop01
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mymcpapp
+  template:
+    metadata:
+      labels:
+        app: mymcpapp
+    spec:
+      containers:
+        - name: mymcpapp
+          image: yyxiang/aalwg-workshop1:0.0.1
+          ports:
+            - containerPort: 3000
+          env:
+            - name: APP_PORT
+              value: "3000"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mymcpapp
+  namespace: workshop01
+spec:
+  selector:
+    app: mymcpapp
+  ports:
+    - port: 80
+      targetPort: 3000
