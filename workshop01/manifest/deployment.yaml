@@ -21,6 +21,7 @@ spec:
       containers:
         - name: mymcpapp
           image: yyxiang/aalwg-workshop1:0.0.1
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
           env:
