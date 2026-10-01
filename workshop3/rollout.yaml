@@ -1,0 +1,35 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: dov-bear
+  namespace: workshop3
+spec:
+  replicas: 3
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: dov-bear
+  template:
+    metadata:
+      labels:
+        app: dov-bear
+    spec:
+      imagePullSecrets:
+        - name: gitlab-registry-secret
+      containers:
+        - name: dov-bear
+          image: registry.gitlab.com/aalwg1/workshop3:v2
+          ports:
+            - containerPort: 3000
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 3
+            periodSeconds: 5
+  strategy:
+    blueGreen:
+      activeService: dov-bear-active
+      previewService: dov-bear-preview
+      autoPromotionEnabled: false
+      scaleDownDelaySeconds: 60
