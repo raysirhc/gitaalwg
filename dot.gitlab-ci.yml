@@ -1,0 +1,81 @@
+workflow:
+  rules:
+    - if: $CI_COMMIT_MESSAGE =~ /#NO_RUN/
+      when: never
+    - when: always
+
+stages:
+  - build
+  - test
+  - package
+
+build_angular:
+  stage: build
+  image: node:25-alpine
+
+  variables:
+    npm_config_cache: "$CI_PROJECT_DIR/.npm"
+
+  cache:
+    key:
+      files:
+        - workshop02/package-lock.json
+    paths:
+      - workshop02/node_modules/
+      - .npm/
+
+  script:
+    - cd workshop02
+    - npm ci --force --cache ../.npm --prefer-offline
+    - sed -i "s/__APP_VERSION__/$CI_COMMIT_SHORT_SHA/" src/environments/*.ts
+    - node_modules/.bin/ng build
+
+  pages:
+    publish: workshop02/dist/dovbear/browser
+
+  artifacts:
+    paths:
+      - workshop02/dist/dovbear/browser
+    expire_in: 1 week
+
+test_build:
+  stage: test
+  image: alpine
+  needs:
+    - build_angular
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - when: on_success
+  services:
+    - name: caddy:2-alpine
+      alias: caddy
+      entrypoint: ["/bin/sh", "-c"]
+      command: ["caddy file-server --root=/builds/${CI_PROJECT_PATH}/workshop02/dist/dovbear/browser --listen=:8080"]
+  script:
+    - apk --update --no-cache add curl
+    - curl http://caddy:8080 | grep -i "<app-root>"
+
+build_container:
+  stage: package
+  image: docker:latest
+  needs:
+    - build_angular
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^release\/v.+/
+  services:
+    - docker:dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+    IMAGE_NAME: "yyxiang/dovbear"
+  before_script:
+    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+  script:
+    - cd workshop02
+    - TAG=$(basename "$CI_COMMIT_TAG")
+    - >
+      docker build
+      --label commit_sha=$CI_COMMIT_SHORT_SHA
+      -t $IMAGE_NAME:$TAG
+      .
+    - docker push $IMAGE_NAME:$TAG
