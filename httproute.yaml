@@ -1,0 +1,15 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: dov-bear-route
+  namespace: workshop3
+spec:
+  parentRefs:
+    - name: mygw
+      namespace: aalwg
+  hostnames:
+    - dov-bear.172.25.39.200.nip.io
+  rules:
+    - backendRefs:
+        - name: dov-bear-active
+          port: 80
