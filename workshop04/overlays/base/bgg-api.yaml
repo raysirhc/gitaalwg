@@ -1,0 +1,63 @@
+---
+# This is the production service
+apiVersion: v1
+kind: Service
+metadata:
+  name: bggapi-svc
+  namespace: workshop04
+spec:
+  type: ClusterIP
+  selector:
+    app: bgg
+    name: bggapi-po
+  ports:
+  - port: 5000
+    targetPort: 5000
+
+---
+# This is the canary service
+apiVersion: v1
+kind: Service
+metadata:
+  name: canary-bggapi-svc
+  namespace: workshop04
+spec:
+  type: ClusterIP
+  selector:
+    app: bgg
+    name: bggapi-po
+  ports:
+  - port: 5000
+    targetPort: 5000
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: bggapi-httproute
+  namespace: workshop04
+spec:
+  parentRefs:
+  - name: mygw
+    namespace: aalwg
+    port: 80
+  hostnames:
+  - bgg-172.25.39.200.nip.io
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+    filters:
+    - type: ResponseHeaderModifier
+      responseHeaderModifier:
+        add:
+        - name: Access-Control-Allow-Origin
+          value: '*'
+    backendRefs:
+    - name: bggapi-svc
+      namespace: workshop04
+      port: 5000
+    - name: canary-bggapi-svc
+      namespace: workshop04
+      port: 5000

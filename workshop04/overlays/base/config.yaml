@@ -1,0 +1,13 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: bggapi-secret
+  namespace: workshop04
+type: Opaque
+stringData:
+  BGG_DB_USER: root
+  BGG_DB_PASSWORD: mypassword
+  BGG_DB_HOST: bggdb-svc.workshop04.svc.cluster.local
+  BGG_DB_PORT: "3306"
+  BGG_PORT: "5000"
