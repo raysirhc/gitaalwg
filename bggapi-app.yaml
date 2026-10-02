@@ -1,0 +1,48 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: bggapi-app
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/compare-options: ServerSideDiff=true
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://gitlab.com/aalwg1/bggapi.git
+    path: overlays/prod
+    targetRevision: HEAD
+  destination:
+    namespace: workshop04
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    managedNamespaceMetadata:
+      labels:
+        gateway: mygw
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+    - CreateNamespace=true
+    - ServerSideApply=true
+    - RespectIgnoreDifferences=true
+  ignoreDifferences:
+  - group: argoproj.io
+    kind: Rollout
+    name: bggapi-ro
+    namespace: workshop04
+    jsonPointers:
+    - /spec/replicas
+  - group: ""
+    kind: Service
+    namespace: workshop04
+    jqPathExpressions:
+    - '.spec.selector."rollouts-pod-template-hash"'
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: bggapi-httproute
+    namespace: workshop04
+    jqPathExpressions:
+    - '.spec.rules[].backendRefs[].weight'
