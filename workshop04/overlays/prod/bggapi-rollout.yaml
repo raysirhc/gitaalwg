@@ -1,0 +1,44 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: bggapi-ro
+  namespace: workshop04
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: bgg
+      name: bggapi-po
+  template:
+    metadata:
+      labels:
+        app: bgg
+        name: bggapi-po
+    spec:
+      containers:
+      - name: bggapi-container
+        image: chukmunnlee/bgg-api:v2
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        envFrom:
+        - secretRef:
+            name: bggapi-secret
+        ports:
+        - name: http
+          containerPort: 5000
+  strategy:
+    canary:
+      stableService: bggapi-svc
+      canaryService: canary-bggapi-svc
+      trafficRouting:
+        plugins:
+          argoproj-labs/gatewayAPI:
+            httpRoute: bggapi-httproute
+            namespace: workshop04
+      steps:
+      - setCanaryScale:
+          weight: 25
+      - setWeight: 25
+      - pause: {}
